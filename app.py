@@ -1,9 +1,13 @@
-import streamlit as st
+import time
 import random
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
 from copy import deepcopy
+from html import escape
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
+import streamlit as st
 
 # ============================================================
 # KONFIGURASI HALAMAN
@@ -16,92 +20,298 @@ st.set_page_config(
 )
 
 # ============================================================
-# CUSTOM CSS (meniru gaya dashboard Tailwind)
+# CSS — FIX SELECTBOX TOTAL & PUSH LAYOUT
 # ============================================================
-st.markdown("""
+CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-/* Kartu metric */
-[data-testid="stMetric"] {
-    background: #ffffff;
-    border: 1px solid #e0e7e3;
-    border-radius: 12px;
-    padding: 16px 20px;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
-}
-[data-testid="stMetricLabel"] { font-size: 13px !important; color: #3d4a42; }
-[data-testid="stMetricValue"] { font-size: 28px !important; color: #006948; font-weight: 700; }
-
-/* Header utama */
-.main-header {
-    background: linear-gradient(135deg, #006948 0%, #00855d 100%);
-    color: white;
-    padding: 24px 28px;
-    border-radius: 16px;
-    margin-bottom: 20px;
-}
-.main-header h1 { margin: 0; font-size: 26px; font-weight: 700; }
-.main-header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 14px; }
-
-/* Badge */
-.badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-}
-.badge-success { background: #d4f5e3; color: #006948; }
-.badge-warning { background: #fff4e0; color: #8d4b00; }
-.badge-danger  { background: #ffdad6; color: #ba1a1a; }
-
-/* Card */
-.card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
-    margin-bottom: 16px;
-}
-.card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #0b1c30;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal;
+  font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none;
+  display: inline-block; white-space: nowrap; direction: ltr;
+  font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
 }
 
-/* Tombol utama */
-.stButton > button {
-    background: #006948;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 20px;
-    font-weight: 600;
-    transition: all 0.2s;
+/* ---------- Dasar ---------- */
+.stApp { background: #f8f9ff; color: #0b1c30; font-family: 'Plus Jakarta Sans', sans-serif; }
+.stApp p, .stApp label, .stApp li, .stApp h1, .stApp h2, .stApp h3, .stApp h4,
+.stApp input, .stApp button, .stApp textarea, .stApp td, .stApp th {
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
-.stButton > button:hover {
-    background: #00855d;
-    transform: translateY(-1px);
+header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
+#MainMenu, footer { display: none !important; }
+
+/* ============================================================
+   FIX TOTAL: SIDEBAR OVERLAY (TIDAK MENDORONG KONTEN)
+   ============================================================ */
+section[data-testid="stSidebar"] {
+  position: fixed !important; top: 0 !important; left: 0 !important; height: 100vh !important;
+  width: 260px !important; min-width: 260px !important; max-width: 260px !important;
+  background: #ffffff !important; border-right: 1px solid #e0e7e3 !important;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.08) !important; z-index: 1000 !important;
+  transition: transform 0.3s ease, visibility 0.3s ease !important;
+}
+section[data-testid="stSidebar"][aria-expanded="false"] {
+  transform: translateX(-100%) !important; visibility: hidden !important;
+}
+[data-testid="stAppViewContainer"] > section.main, .stApp > section.main, .stMainBlockContainer {
+  margin-left: 0 !important; padding-left: 0 !important; transition: none !important;
 }
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: #f8f9ff;
+[data-testid="stSidebarHeader"] { display: none !important; }
+
+[data-testid="stSidebarCollapseButton"] {
+  position: absolute !important; top: 16px !important; right: 12px !important;
+  z-index: 1001 !important; display: flex !important;
+}
+[data-testid="stSidebarCollapseButton"] button {
+  background: #eff4ff !important; color: #006948 !important; border-radius: 8px !important;
+  width: 32px !important; height: 32px !important; padding: 0 !important; border: none !important;
+}
+[data-testid="stSidebarCollapseButton"] button:hover { background: #dce9ff !important; }
+[data-testid="stSidebarCollapseButton"] button svg { fill: #006948 !important; }
+
+[data-testid="collapsedControl"], [data-testid="stSidebarCollapsedControl"] {
+  position: fixed !important; top: 16px !important; left: 16px !important; z-index: 1001 !important;
+  display: flex !important; background: #ffffff !important; border-radius: 8px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+}
+[data-testid="collapsedControl"] button, [data-testid="stSidebarCollapsedControl"] button {
+  background: transparent !important; color: #006948 !important; border: none !important;
+  width: 36px !important; height: 36px !important;
+}
+[data-testid="collapsedControl"] button:hover, [data-testid="stSidebarCollapsedControl"] button:hover { background: #e5eeff !important; }
+[data-testid="collapsedControl"] button svg, [data-testid="stSidebarCollapsedControl"] button svg { fill: #006948 !important; }
+
+[data-testid="stSidebarUserContent"] { padding: 72px 16px 24px 16px !important; }
+.nav-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  color: #6d7a72; padding: 0 8px 12px 8px;
+}
+
+/* Menu Navigasi Radio */
+section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 6px !important; display: flex; flex-direction: column; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+  width: 100% !important; margin: 0 !important; padding: 12px 16px !important;
+  border-radius: 10px !important; cursor: pointer; transition: background .15s;
+  min-height: 48px; display: flex !important; align-items: center !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { background: #dce9ff !important; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child { display: none !important; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label p {
+  display: flex !important; align-items: center !important; gap: 12px !important;
+  margin: 0 !important; font-size: 14px !important; font-weight: 600 !important;
+  color: #3d4a42 !important; line-height: 1.2 !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label p::before {
+  font-family: 'Material Symbols Outlined'; font-weight: normal;
+  font-size: 22px; line-height: 1; font-feature-settings: 'liga'; flex-shrink: 0;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) { background: #00855d !important; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p { color: #f5fff7 !important; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(1) p::before { content: 'hub'; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(2) p::before { content: 'nutrition'; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(3) p::before { content: 'calendar_month'; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(4) p::before { content: 'monitoring'; }
+
+.side-card { margin-top: 32px; padding: 16px; border-radius: 12px; background: #eff4ff; }
+.side-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #006948; }
+.side-row span:last-child { font-weight: 500; color: #3d4a42; }
+.side-note { font-size: 11px; color: #3d4a42; margin-top: 8px; }
+
+/* ============================================================
+   HEADER UTAMA (Statis, tidak ikut bergeser)
+   ============================================================ */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 999;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px 0 64px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo {
+  width: 34px; height: 34px; border-radius: 10px; font-size: 18px; color: #fff;
+  background: linear-gradient(135deg, #006948, #00855d);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-name { font-size: 18px; font-weight: 600; color: #006948; letter-spacing: -0.005em; margin-right: 8px; }
+.brand-sub { font-size: 11px; color: #3d4a42; margin-top: 2px; }
+.unit { text-align: right; line-height: 1.25; margin-right: 12px; }
+.unit b { display: block; font-size: 14px; color: #0b1c30; font-weight: 600; }
+.unit span { font-size: 11px; color: #3d4a42; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%; background: #006948; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+  border-radius: 999px; font-size: 11px; font-weight: 600; vertical-align: middle;
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #006948; animation: pulse 1.6s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* ---------- Konten Utama ---------- */
+.block-container { padding: 6rem 2rem 3rem 2rem !important; max-width: 100% !important; }
+
+/* ---------- Komponen ---------- */
+[class*="st-key-card-"] { background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+.stButton, .stDownloadButton, [data-testid="stFormSubmitButton"] { width: 100%; }
+.stButton button, .stDownloadButton button, [data-testid="stFormSubmitButton"] button {
+  width: 100%; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 600; transition: all .15s;
+}
+button[kind="primary"] { background: #006948 !important; color: #ffffff !important; }
+button[kind="primary"]:hover { background: #00855d !important; }
+button[kind="secondary"] { background: #e5eeff !important; color: #0b1c30 !important; }
+button[kind="secondary"]:hover { background: #dce9ff !important; }
+
+/* Input & Selectbox */
+[data-baseweb="input"], [data-baseweb="base-input"] {
+  background: #eff4ff !important; border-radius: 8px !important; border: 1px solid #bccac0 !important;
+}
+[data-baseweb="input"] input, [data-testid="stNumberInput"] input, [data-testid="stTextInput"] input {
+  color: #0b1c30 !important; -webkit-text-fill-color: #0b1c30 !important; font-weight: 600 !important;
+}
+[data-testid="stWidgetLabel"] p { font-size: 12px; font-weight: 600; color: #0b1c30 !important; }
+
+/* ============================================================
+   FIX TOTAL: SELECTBOX (Warna Teks Putih jadi Hitam)
+   ============================================================ */
+/* 1. Kontainer Utama */
+div[data-baseweb="select"] > div {
+  background-color: #eff4ff !important;
+  border: 1px solid #bccac0 !important;
+  border-radius: 8px !important;
+}
+/* 2. Paksa semua teks, span, div, dan input di dalam selectbox jadi hitam */
+div[data-baseweb="select"] * {
+  color: #0b1c30 !important;
+  -webkit-text-fill-color: #0b1c30 !important;
+  font-weight: 600 !important;
+}
+/* 3. Ikon panah (chevron) */
+div[data-baseweb="select"] svg {
+  fill: #006948 !important;
+  color: #006948 !important;
+}
+/* 4. Dropdown List (saat diklik) */
+div[data-baseweb="popover"] ul {
+  background-color: #ffffff !important;
+  border: 1px solid #bccac0 !important;
+}
+div[data-baseweb="popover"] li {
+  color: #0b1c30 !important;
+  background-color: #ffffff !important;
+  font-weight: 500 !important;
+}
+div[data-baseweb="popover"] li:hover {
+  background-color: #e5eeff !important;
+  color: #006948 !important;
+}
+
+/* Slider */
+[data-testid="stSlider"] div[role="slider"] { background-color: #006948 !important; }
+[data-testid="stSliderThumbValue"] { color: #006948 !important; font-weight: 700 !important; background: #ffffff !important; border-radius: 6px; padding: 1px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+/* Custom HTML Kelas */
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.sec-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: #0b1c30; }
+.sec-title .material-symbols-outlined { color: #006948; font-size: 22px; }
+.sec-sub { font-size: 11px; color: #3d4a42; }
+.muted { font-size: 11px; color: #3d4a42; }
+.h1 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.01em; color: #0b1c30; margin: 6px 0; }
+.lead { font-size: 14px; line-height: 22px; color: #3d4a42; max-width: 760px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: #e5eeff; font-size: 11px; font-weight: 500; color: #0b1c30; }
+.chip b { font-weight: 700; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.kpi { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 10px; }
+.kpi-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: #3d4a42; }
+.kpi-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.kpi-val { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: -.03em; color: #0b1c30; }
+.kpi-val small { font-size: 14px; font-weight: 400; letter-spacing: 0; color: #3d4a42; }
+.kpi-sub { font-size: 11px; color: #3d4a42; margin-top: -6px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; width: fit-content; }
+.b-ok { background: #85f8c4; color: #002114; }
+.b-warn { background: #ffdcc3; color: #6e3900; }
+.b-err { background: #ffdad6; color: #93000a; }
+.b-neutral { background: #dce9ff; color: #3d4a42; }
+
+.meal { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: #eff4ff; border-radius: 12px; margin-bottom: 8px; transition: background .15s; flex-wrap: wrap; }
+.meal:hover { background: #e5eeff; }
+.meal-l { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 240px; }
+.meal-ico { width: 40px; height: 40px; border-radius: 8px; background: #d3e4fe; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.meal-name { font-size: 14px; font-weight: 600; color: #0b1c30; }
+.tag { font-size: 11px; font-weight: 500; padding: 1px 6px; border-radius: 4px; background: #dce9ff; color: #3d4a42; margin-left: 8px; }
+.meal-r { display: flex; gap: 20px; text-align: right; }
+.num-main { font-size: 12px; font-weight: 600; color: #0b1c30; }
+.num-price { font-size: 14px; font-weight: 700; color: #006948; }
+.total-box { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px; background: #e5eeff; border-radius: 12px; margin: 12px 0 16px 0; }
+.total-label { font-size: 12px; font-weight: 600; color: #3d4a42; letter-spacing: .02em; }
+.total-line { font-size: 14px; font-weight: 600; color: #0b1c30; margin-top: 2px; }
+.total-price { font-size: 18px; font-weight: 700; color: #006948; text-align: right; }
+.bars { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin-top: 8px; }
+.bar-lbl { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; color: #0b1c30; }
+.bar { height: 8px; background: #dce9ff; border-radius: 999px; overflow: hidden; margin-top: 4px; }
+.bar > div { height: 100%; border-radius: 999px; }
+.banner { display: flex; align-items: center; gap: 12px; padding: 16px; background: #e5eeff; border-radius: 12px; }
+.banner-ico { width: 32px; height: 32px; border-radius: 50%; background: #d3e4fe; color: #006948; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.banner b { display: block; font-size: 14px; color: #0b1c30; }
+.banner span { font-size: 11px; color: #3d4a42; }
+.empty { padding: 32px 16px; text-align: center; background: #eff4ff; border-radius: 12px; font-size: 13px; color: #3d4a42; }
+.day-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.day { background: #eff4ff; border-radius: 12px; padding: 14px; }
+.day-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.day-h b { font-size: 14px; color: #0b1c30; }
+.day-h span { font-size: 12px; font-weight: 700; color: #006948; }
+.day-i { font-size: 12px; color: #3d4a42; padding: 3px 0; display: flex; justify-content: space-between; gap: 8px; }
+
+/* Responsif */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .bars { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .block-container { padding: 5rem 1rem 2rem 1rem !important; }
+  .app-header { padding: 0 16px 0 64px; height: 56px; }
+  .brand-sub, .unit { display: none; }
+  .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
+  .kpi { padding: 14px; }
+  .kpi-val { font-size: 26px; line-height: 32px; }
+  .h1 { font-size: 20px; line-height: 28px; }
+  .lead { font-size: 13px; line-height: 20px; }
+  .meal { padding: 10px; }
+  .meal-r { width: 100%; justify-content: space-between; }
+  .meal-l { flex: 1 1 100%; }
+  .total-box { padding: 12px; }
+  .total-price { font-size: 16px; }
+  .banner { flex-direction: column; align-items: flex-start; }
+  .day-grid { grid-template-columns: 1fr; }
 }
 </style>
-""", unsafe_allow_html=True)
+"""
+
+
+def md(s):
+    st.markdown("".join(line.strip() for line in s.strip().splitlines()), unsafe_allow_html=True)
+
+
+def rp(x):
+    return "Rp " + f"{x:,.0f}".replace(",", ".")
+
+
+def icon(name, size=None):
+    style = f' style="font-size:{size}px"' if size else ""
+    return f'<span class="material-symbols-outlined"{style}>{name}</span>'
+
+
+md(CSS)
 
 # ============================================================
-# DATASET DEFAULT (bisa diubah user)
+# DATASET & PARAMETER DEFAULT
 # ============================================================
 DEFAULT_DATASET = {
     "Karbohidrat": [
@@ -127,23 +337,35 @@ DEFAULT_DATASET = {
     ],
 }
 
+DEFAULT_PARAMS = {
+    "p_semut": 60, "p_iterasi": 80, "p_alpha": 1.0, "p_beta": 2.0, "p_rho": 0.15, "p_q": 100.0,
+    "p_min_kalori": 600, "p_min_protein": 20, "p_budget": 15000,
+}
+NAV = ["Simulasi & Optimasi ACO", "Katalog Bahan", "Perencanaan Mingguan", "Laporan & Evaluasi Biaya"]
+HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
+
 # ============================================================
-# SESSION STATE — dataset bisa diedit user
+# SESSION STATE
 # ============================================================
 if "dataset" not in st.session_state:
     st.session_state.dataset = deepcopy(DEFAULT_DATASET)
+for _k in ("hasil", "mingguan"):
+    st.session_state.setdefault(_k, None)
+for _k, _v in DEFAULT_PARAMS.items():
+    st.session_state[_k] = st.session_state.get(_k, _v)
 
-if "hasil" not in st.session_state:
-    st.session_state.hasil = None
 
-if "riwayat_terbaik" not in st.session_state:
-    st.session_state.riwayat_terbaik = []
+def get_params():
+    s = st.session_state
+    return {
+        "semut": s.p_semut, "iterasi": s.p_iterasi, "alpha": s.p_alpha, "beta": s.p_beta,
+        "rho": s.p_rho, "q": s.p_q, "min_kalori": s.p_min_kalori,
+        "min_protein": s.p_min_protein, "budget": s.p_budget,
+    }
 
-if "riwayat_rata" not in st.session_state:
-    st.session_state.riwayat_rata = []
 
 # ============================================================
-# HELPER FUNCTIONS
+# ALGORITMA ACO
 # ============================================================
 def weighted_choice(items, weights):
     total = sum(weights)
@@ -157,7 +379,6 @@ def weighted_choice(items, weights):
 
 
 def run_aco(dataset, params):
-    """Jalankan simulasi ACO dan kembalikan hasil."""
     JUMLAH_SEMUT = params["semut"]
     ITERASI = params["iterasi"]
     ALFA = params["alpha"]
@@ -168,18 +389,13 @@ def run_aco(dataset, params):
     MIN_PROTEIN = params["min_protein"]
     BUDGET = params["budget"]
 
-    # Init feromon
     feromon = {}
     for kat, daftar in dataset.items():
         for m in daftar:
             feromon[m["nama"]] = 1.0
 
-    riwayat_terbaik = []
-    riwayat_rata = []
-    menu_terbaik = None
-    harga_terbaik = 0
-
-    # Pre-extract category list untuk efisiensi
+    riwayat_terbaik, riwayat_rata = [], []
+    menu_terbaik, harga_terbaik = None, 0
     kategori_list = list(dataset.keys())
 
     for it in range(ITERASI):
@@ -201,13 +417,10 @@ def run_aco(dataset, params):
                 gram = random.randint(80, 250)
                 f = gram / 100
                 menu.append({
-                    "nama": pilih["nama"],
-                    "gram": gram,
-                    "harga": pilih["harga"] * f,
-                    "kalori": pilih["kalori"] * f,
+                    "nama": pilih["nama"], "gram": gram,
+                    "harga": pilih["harga"] * f, "kalori": pilih["kalori"] * f,
                     "protein": pilih["protein"] * f,
-                    "icon": pilih.get("icon", "🍽️"),
-                    "kategori": kat,
+                    "icon": pilih.get("icon", "🍽️"), "kategori": kat,
                 })
 
             t_harga = sum(x["harga"] for x in menu)
@@ -216,14 +429,11 @@ def run_aco(dataset, params):
             total_harga_semut += t_harga
 
             if t_kalori >= MIN_KALORI and t_protein >= MIN_PROTEIN and t_harga <= BUDGET:
-                fitness = t_harga  # maximize cost within budget
-                solusi.append({"menu": menu, "harga": t_harga, "fitness": fitness})
+                solusi.append({"menu": menu, "harga": t_harga, "fitness": t_harga})
 
-        # Evaporasi
         for k in feromon:
             feromon[k] *= (1 - EVAPORASI)
 
-        # Deposit feromon dari solusi terbaik
         if solusi:
             best = max(solusi, key=lambda x: x["harga"])
             for m in best["menu"]:
@@ -236,439 +446,573 @@ def run_aco(dataset, params):
         riwayat_rata.append(total_harga_semut / JUMLAH_SEMUT)
 
     return {
-        "menu_terbaik": menu_terbaik,
-        "harga_terbaik": harga_terbaik,
-        "riwayat_terbaik": riwayat_terbaik,
-        "riwayat_rata": riwayat_rata,
+        "menu_terbaik": menu_terbaik, "harga_terbaik": harga_terbaik,
+        "riwayat_terbaik": riwayat_terbaik, "riwayat_rata": riwayat_rata,
     }
 
 
 # ============================================================
-# SIDEBAR — PARAMETER ACO
+# CALLBACK
 # ============================================================
-with st.sidebar:
-    st.markdown("## ⚙️ Parameter ACO")
-    semut = st.slider("Jumlah Koloni Semut", 10, 200, 60, 10)
-    iterasi = st.slider("Maksimal Iterasi", 10, 250, 80, 10)
-    alpha = st.slider("Alpha (α) — Bobot Feromon", 0.1, 5.0, 1.0, 0.1)
-    beta = st.slider("Beta (β) — Bobot Heuristik", 0.5, 5.0, 2.0, 0.1)
-    rho = st.slider("Rho (ρ) — Penguapan Feromon", 0.05, 0.9, 0.15, 0.05)
-    q = st.number_input("Konstanta Deposit Q", 10.0, 1000.0, 100.0, 10.0)
+def jalankan_aco():
+    ds = st.session_state.dataset
+    if sum(len(v) for v in ds.values()) == 0:
+        st.session_state.hasil = {"kosong": True, "menu_terbaik": None}
+        return
+    params = get_params()
+    t0 = time.perf_counter()
+    hasil = run_aco(ds, params)
+    hasil["waktu"] = time.perf_counter() - t0
+    hasil["params"] = params
+    final = hasil["harga_terbaik"]
+    hasil["iter_konv"] = next(
+        (i + 1 for i, v in enumerate(hasil["riwayat_terbaik"]) if v and v >= final),
+        params["iterasi"],
+    )
+    st.session_state.hasil = hasil
 
-    st.markdown("---")
-    st.markdown("## 🎯 Batasan Gizi & Biaya")
-    min_kalori = st.number_input("Min Kalori (kkal)", 100, 2000, 600, 50)
-    min_protein = st.number_input("Min Protein (g)", 5, 100, 20, 1)
-    budget = st.number_input("Budget Maks (Rp)", 5000, 50000, 15000, 500)
 
-    st.markdown("---")
-    if st.button("🔄 Reset Semua ke Default", use_container_width=True):
-        st.session_state.dataset = deepcopy(DEFAULT_DATASET)
-        st.session_state.hasil = None
-        st.session_state.riwayat_terbaik = []
-        st.session_state.riwayat_rata = []
-        st.success("Dataset & parameter direset.")
-        st.rerun()
+def reset_params():
+    for k, v in DEFAULT_PARAMS.items():
+        st.session_state[k] = v
+
+
+def reset_dataset():
+    st.session_state.dataset = deepcopy(DEFAULT_DATASET)
+    st.session_state.hasil = None
+    st.session_state.mingguan = None
+
+
+def susun_mingguan():
+    params = get_params()
+    ds = st.session_state.dataset
+    rencana = []
+    for h in HARI:
+        r = run_aco(ds, params)
+        rencana.append({"hari": h, "menu": r["menu_terbaik"], "harga": r["harga_terbaik"]})
+    st.session_state.mingguan = {"rencana": rencana, "params": params}
 
 
 # ============================================================
-# HEADER
+# KOMPONEN TAMPILAN
 # ============================================================
-st.markdown("""
-<div class="main-header">
-    <h1>🐜 MBG NutriOpt — Simulasi ACO</h1>
-    <p>Sistem Optimasi Menu & Porsi Bergizi Gratis berbasis Ant Colony Optimization</p>
-</div>
-""", unsafe_allow_html=True)
+def render_header():
+    md(f"""
+    <div class="app-header">
+      <div class="brand">
+        <div class="logo">🐜</div>
+        <div>
+          <div><span class="brand-name">MBG NutriOpt</span>
+            <span class="pill" style="background:#85f8c4;color:#002114"><span class="dot"></span>ACO Engine (Active)</span></div>
+          <div class="brand-sub">Sistem Optimasi Menu &amp; Porsi Bergizi Gratis berbasis Ant Colony Optimization</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center">
+        <div class="unit"><b>Unit Dapur SPPG 04</b><span>Satuan Pelayanan Program Gizi</span></div>
+        <div class="avatar">{icon("person", 18)}</div>
+      </div>
+    </div>
+    """)
 
-# ============================================================
-# TABS
-# ============================================================
-tab1, tab2 = st.tabs(["🚀 Simulasi & Optimasi", "📚 Kelola Bahan Makanan"])
 
-# ============================================================
-# TAB 1: SIMULASI
-# ============================================================
-with tab1:
-    # Ringkasan dataset
-    total_item = sum(len(v) for v in st.session_state.dataset.values())
-    total_kategori = len(st.session_state.dataset)
-    st.caption(f"📦 Dataset aktif: **{total_item} bahan** dalam **{total_kategori} kategori** "
-               f"({', '.join(st.session_state.dataset.keys())})")
+def render_sidebar_card(hasil):
+    s = st.session_state
+    if hasil and hasil.get("menu_terbaik"):
+        p = hasil["params"]
+        pct = hasil["iter_konv"] / p["iterasi"] * 100
+        semut, note = p["semut"], f"Konvergen di iterasi {hasil['iter_konv']} dari {p['iterasi']}"
+    else:
+        pct, semut, note = 0, s.p_semut, "Belum ada simulasi"
+    md(f"""
+    <div class="side-card">
+      <div class="side-row"><span>Pheromone Node</span><span>{semut} Ants</span></div>
+      <div class="bar" style="margin-top:8px"><div style="width:{pct:.0f}%;background:#006948"></div></div>
+      <div class="side-note">{note}</div>
+    </div>
+    """)
 
-    # Tombol jalankan
-    col_btn1, col_btn2, col_btn3 = st.columns([2, 1, 1])
-    with col_btn1:
-        run_btn = st.button("▶ Jalankan Optimasi ACO", type="primary", use_container_width=True)
-    with col_btn2:
-        if st.session_state.hasil:
-            # Export CSV
-            df_export = pd.DataFrame(st.session_state.hasil["menu_terbaik"])
-            csv = df_export.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "⬇️ Unduh Menu (.CSV)",
-                data=csv,
-                file_name="menu_mbg_aco.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-    with col_btn3:
-        if st.button("📊 Ulangi dengan Seed Sama", use_container_width=True):
-            if st.session_state.hasil:
-                st.info("Simulasi ulang akan memberi hasil berbeda (ACO stokastik).")
 
-    # Jalankan simulasi
-    if run_btn:
-        if total_item == 0:
-            st.error("❌ Dataset kosong! Tambahkan minimal 1 bahan per kategori di tab 'Kelola Bahan Makanan'.")
-        else:
-            # Cek setiap kategori punya minimal 1 item
-            empty_cats = [k for k, v in st.session_state.dataset.items() if len(v) == 0]
-            if empty_cats:
-                st.warning(f"⚠️ Kategori berikut kosong dan akan dilewati: {', '.join(empty_cats)}")
+def sec_head(ico, title, sub=None, right=""):
+    sub_html = f'<div class="sec-sub">{sub}</div>' if sub else ""
+    md(f"""
+    <div class="sec-head"><div><div class="sec-title">{icon(ico)}{title}</div>{sub_html}</div>{right}</div>
+    """)
 
-            with st.spinner("Menjalankan simulasi ACO..."):
-                params = {
-                    "semut": semut, "iterasi": iterasi,
-                    "alpha": alpha, "beta": beta, "rho": rho, "q": q,
-                    "min_kalori": min_kalori, "min_protein": min_protein,
-                    "budget": budget,
-                }
-                hasil = run_aco(st.session_state.dataset, params)
-                st.session_state.hasil = hasil
-                st.session_state.riwayat_terbaik = hasil["riwayat_terbaik"]
-                st.session_state.riwayat_rata = hasil["riwayat_rata"]
 
-    # Tampilkan hasil
-    hasil = st.session_state.hasil
-    if hasil and hasil["menu_terbaik"]:
-        menu = hasil["menu_terbaik"]
-        total_kal = sum(m["kalori"] for m in menu)
-        total_prot = sum(m["protein"] for m in menu)
-        harga = hasil["harga_terbaik"]
+def kpi(title, ico, bg, fg, value, sub, b_cls, b_ico, b_txt):
+    return f"""
+    <div class="kpi">
+      <div class="kpi-top"><span>{title}</span><div class="kpi-ico" style="background:{bg};color:{fg}">{icon(ico, 18)}</div></div>
+      <div class="kpi-val">{value}</div>
+      <div class="kpi-sub">{sub}</div>
+      <span class="badge {b_cls}">{icon(b_ico, 14)}{b_txt}</span>
+    </div>
+    """
 
-        # KPI Cards
-        st.markdown("### 📊 Ringkasan Hasil Optimasi")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("💰 Total Biaya", f"Rp {harga:,.0f}".replace(",", "."),
-                  delta=f"{(budget - harga):,.0f} sisa".replace(",", "."))
-        c2.metric("🔥 Total Kalori", f"{total_kal:.1f} kkal",
-                  delta=f"+{total_kal - min_kalori:.0f} dari target")
-        c3.metric("💪 Total Protein", f"{total_prot:.1f} g",
-                  delta=f"+{total_prot - min_protein:.1f} dari target")
-        c4.metric("🍽️ Jumlah Komponen", f"{len(menu)} item",
-                  delta=f"{len(set(m['kategori'] for m in menu))} kategori")
 
-        # Status badge
-        if harga <= budget and total_kal >= min_kalori and total_prot >= min_protein:
-            st.markdown('<span class="badge badge-success">✅ SOLUSI VALID — Memenuhi semua batasan</span>',
-                        unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="badge badge-warning">⚠️ SOLUSI PARSIAL</span>',
-                        unsafe_allow_html=True)
+def render_kpis(hasil):
+    if hasil and hasil.get("menu_terbaik"):
+        p, menu, harga = hasil["params"], hasil["menu_terbaik"], hasil["harga_terbaik"]
+        kal = sum(m["kalori"] for m in menu)
+        prot = sum(m["protein"] for m in menu)
+        n_kat = len({m["kategori"] for m in menu})
+        sisa = p["budget"] - harga
+        cards = [
+            kpi("Total Energi / Kalori", "bolt", "#85f8c4", "#002114",
+                f'{kal:.0f} <small>kkal</small>', f'Minimum: {p["min_kalori"]} kkal',
+                "b-ok", "check_circle", f'Memenuhi Target ({kal / p["min_kalori"] * 100:.0f}%)'),
+            kpi("Kandungan Protein", "egg_alt", "#dce9ff", "#006948",
+                f'{prot:.1f} <small>gram</small>', f'Kebutuhan Min: {p["min_protein"]} gram',
+                "b-ok", "verified", f'Memenuhi Target ({prot / p["min_protein"] * 100:.0f}%)'),
+            kpi("Total Biaya Bahan", "payments", "#ffdcc3", "#2f1500",
+                rp(harga), f'Pagu Anggaran: {rp(p["budget"])}',
+                "b-ok", "savings", f'Sisa {rp(sisa)} ({sisa / p["budget"] * 100:.1f}%)'),
+            kpi("Komponen Menu", "restaurant", "#dae2fd", "#131b2e",
+                f'{len(menu)} <small>item</small>', f'Dari {n_kat} kategori bahan',
+                "b-ok", "auto_awesome", "Solusi Valid"),
+        ]
+    else:
+        gagal = bool(hasil)
+        b_cls, b_txt = ("b-err", "Tidak ada solusi valid") if gagal else ("b-neutral", "Menunggu simulasi")
+        cards = [
+            kpi("Total Energi / Kalori", "bolt", "#85f8c4", "#002114", "—", "Belum ada data", b_cls, "hourglass_empty", b_txt),
+            kpi("Kandungan Protein", "egg_alt", "#dce9ff", "#006948", "—", "Belum ada data", b_cls, "hourglass_empty", b_txt),
+            kpi("Total Biaya Bahan", "payments", "#ffdcc3", "#2f1500", "—", "Belum ada data", b_cls, "hourglass_empty", b_txt),
+            kpi("Komponen Menu", "restaurant", "#dae2fd", "#131b2e", "—", "Belum ada data", b_cls, "hourglass_empty", b_txt),
+        ]
+    md(f'<div class="kpi-grid">{"".join(cards)}</div>')
 
-        st.markdown("---")
 
-        # Grafik + Menu side by side
-        col_left, col_right = st.columns([1, 1])
+def bar(label, teks, pct, warna="#006948"):
+    return f"""
+    <div><div class="bar-lbl"><span>{label}</span><span style="font-weight:600;color:{warna}">{teks}</span></div>
+    <div class="bar"><div style="width:{min(pct, 100):.0f}%;background:{warna}"></div></div></div>
+    """
 
-        with col_left:
-            st.markdown('<div class="card-title">📈 Grafik Konvergensi ACO</div>', unsafe_allow_html=True)
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
 
-            # Grafik 1: terbaik global
-            r_terbaik = hasil["riwayat_terbaik"]
-            x = list(range(1, len(r_terbaik) + 1))
-            ax1.plot(x, [v if v else np.nan for v in r_terbaik],
-                     color="#006948", linewidth=2.5, label="Terbaik Global")
-            ax1.axhline(y=budget, color="#e53935", linestyle="--",
-                        linewidth=1.5, label=f"Budget (Rp {budget:,.0f})")
-            ax1.set_title("Optimasi Nilai Terbaik Global", fontweight="bold", fontsize=11)
-            ax1.set_xlabel("Iterasi", fontsize=9)
-            ax1.set_ylabel("Rp", fontsize=9)
-            ax1.legend(fontsize=8, loc="lower right")
-            ax1.grid(True, linestyle=":", alpha=0.5)
-            ax1.tick_params(labelsize=8)
+def grafik_konvergensi(hasil):
+    p = hasil["params"]
+    best = np.array([v if v else np.nan for v in hasil["riwayat_terbaik"]], dtype=float)
+    avg = np.array(hasil["riwayat_rata"], dtype=float)
+    x = np.arange(1, len(best) + 1)
 
-            # Grafik 2: rata-rata koloni
-            ax2.plot(x, hasil["riwayat_rata"], color="#66bb6a",
-                     linewidth=2, label="Rata-rata Koloni")
-            ax2.axhline(y=budget, color="#e53935", linestyle="--",
-                        linewidth=1.5, label=f"Budget")
-            ax2.set_title("Fluktuasi Rata-rata Koloni", fontweight="bold", fontsize=11)
-            ax2.set_xlabel("Iterasi", fontsize=9)
-            ax2.set_ylabel("Rp", fontsize=9)
-            ax2.legend(fontsize=8, loc="lower right")
-            ax2.grid(True, linestyle=":", alpha=0.5)
-            ax2.tick_params(labelsize=8)
+    fig, ax = plt.subplots(figsize=(8, 3.6))
+    fig.patch.set_facecolor("#eff4ff")
+    ax.set_facecolor("#eff4ff")
+    ax.fill_between(x, 0, best, where=~np.isnan(best), color="#85f8c4", alpha=0.35)
+    ax.plot(x, best, color="#006948", linewidth=3, label="Terbaik Global")
+    ax.plot(x, avg, color="#565e74", linewidth=2, linestyle="--", label="Rata-rata Koloni")
+    ax.axhline(p["budget"], color="#ba1a1a", linestyle=":", linewidth=1.5, label=f'Pagu {rp(p["budget"])}')
+    k = hasil["iter_konv"]
+    ax.scatter([k], [best[k - 1]], color="#006948", s=60, zorder=5)
+    ax.annotate(f"Iterasi {k}", (k, best[k - 1]), textcoords="offset points", xytext=(0, -16),
+                ha="center", fontsize=8, color="#006948", fontweight="bold")
+    ax.set_xlim(1, len(x))
+    ax.set_ylim(0, max(p["budget"], np.nanmax(best), avg.max()) * 1.08)
+    for s in ("top", "right", "left"):
+        ax.spines[s].set_visible(False)
+    ax.spines["bottom"].set_color("#bccac0")
+    ax.grid(axis="y", color="#d3e4fe")
+    ax.set_axisbelow(True)
+    ax.tick_params(labelsize=8, colors="#3d4a42", length=0)
+    ax.set_xlabel("Iterasi", fontsize=9, color="#3d4a42")
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}".replace(",", ".")))
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=3, frameon=False, fontsize=8)
+    fig.tight_layout()
+    return fig
 
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close(fig)
 
-        with col_right:
-            st.markdown('<div class="card-title">🍽️ Komposisi Isi Piringku</div>', unsafe_allow_html=True)
-            for m in menu:
-                pct_budget = (m["harga"] / harga * 100) if harga > 0 else 0
-                st.markdown(f"""
-                <div style="background:#f1f8e9; border-left:4px solid #43a047;
-                            padding:12px 16px; border-radius:8px; margin-bottom:8px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <span style="font-size:18px;">{m['icon']}</span>
-                            <strong style="font-size:14px;">{m['nama']}</strong>
-                            <span style="font-size:11px; color:#666; margin-left:6px;">
-                                ({m['kategori']})
-                            </span>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="color:#006948; font-weight:700; font-size:14px;">
-                                Rp {m['harga']:,.0f}
-                            </div>
-                            <div style="font-size:11px; color:#666;">{pct_budget:.0f}% budget</div>
-                        </div>
-                    </div>
-                    <div style="font-size:12px; color:#555; margin-top:4px;">
-                        Porsi: <strong>{m['gram']} g</strong> &nbsp;|&nbsp;
-                        {m['kalori']:.0f} kkal &nbsp;|&nbsp;
-                        {m['protein']:.1f} g protein
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+def html_menu(menu, harga, p):
+    rows = ""
+    for m in menu:
+        rows += f"""
+        <div class="meal">
+          <div class="meal-l"><div class="meal-ico">{escape(str(m["icon"]))}</div>
+            <div><div><span class="meal-name">{escape(m["nama"])}</span><span class="tag">{escape(m["kategori"])}</span></div>
+            <div class="muted">Takaran Porsi: <strong>{m["gram"]} gram</strong></div></div></div>
+          <div class="meal-r">
+            <div><div class="num-main">{m["kalori"]:.0f} kkal</div><div class="muted">Prot: {m["protein"]:.1f}g</div></div>
+            <div style="min-width:84px"><div class="num-price">{rp(m["harga"])}</div>
+            <div class="muted">{rp(m["harga"] / m["gram"])}/g</div></div>
+          </div>
+        </div>
+        """
+    kal = sum(m["kalori"] for m in menu)
+    prot = sum(m["protein"] for m in menu)
+    bars = (
+        bar("Energi (min. " + str(p["min_kalori"]) + " kkal)", f'{kal:.0f} kkal ({kal / p["min_kalori"] * 100:.0f}%)',
+            kal / p["min_kalori"] * 100)
+        + bar("Protein (min. " + str(p["min_protein"]) + " g)", f'{prot:.1f} g ({prot / p["min_protein"] * 100:.0f}%)',
+              prot / p["min_protein"] * 100)
+        + bar("Pemakaian Pagu Anggaran", f'{rp(harga)} ({harga / p["budget"] * 100:.0f}%)',
+              harga / p["budget"] * 100, "#006948" if harga <= p["budget"] else "#ba1a1a")
+    )
+    return f"""
+    {rows}
+    <div class="total-box">
+      <div><div class="total-label">Subtotal Nutrisi Terpilih</div>
+        <div class="total-line">{kal:.0f} kkal Energi • {prot:.1f} g Protein</div></div>
+      <div><div class="muted" style="text-align:right">Total Biaya Bahan Baku</div>
+        <div class="total-price">{rp(harga)}</div></div>
+    </div>
+    <div class="total-label">Analisis Pemenuhan Batasan</div>
+    <div class="bars">{bars}</div>
+    """
 
-            # Total ringkas
-            st.markdown(f"""
-            <div style="background:#006948; color:white; padding:16px;
-                        border-radius:12px; margin-top:12px; text-align:center;">
-                <div style="font-size:12px; opacity:0.9;">TOTAL BIAYA BAHAN</div>
-                <div style="font-size:26px; font-weight:700;">Rp {harga:,.0f}</div>
-                <div style="font-size:12px; opacity:0.9;">
-                    dari budget Rp {budget:,.0f} ({(harga/budget*100):.1f}%)
-                </div>
-            </div>
-            """.replace(",", "."), unsafe_allow_html=True)
 
-        # Tabel detail + unduh
-        st.markdown("---")
-        st.markdown("### 📋 Detail Tabel Menu")
-        df_menu = pd.DataFrame([
-            {
-                "Kategori": m["kategori"],
-                "Bahan": m["nama"],
-                "Porsi (g)": m["gram"],
-                "Harga (Rp)": round(m["harga"]),
-                "Kalori (kkal)": round(m["kalori"], 1),
-                "Protein (g)": round(m["protein"], 1),
-            }
-            for m in menu
-        ])
-        st.dataframe(df_menu, use_container_width=True, hide_index=True)
-
-    elif hasil and not hasil["menu_terbaik"]:
-        st.error("❌ **Semut gagal menemukan kombinasi yang valid!**")
-        st.markdown("""
-        **Saran perbaikan:**
-        - Turunkan **Min Kalori** atau **Min Protein**
-        - Naikkan **Budget Maks**
-        - Tambah lebih banyak **bahan** di tiap kategori
-        - Naikkan **Jumlah Semut** atau **Iterasi**
+def page_intro(badge, title, desc):
+    with st.container(key="card-intro"):
+        md(f"""
+        <span class="pill" style="background:#00855d;color:#f5fff7">{icon("scatter_plot", 14)}{badge}</span>
+        <div class="h1">{title}</div><div class="lead">{desc}</div>
         """)
 
-    else:
-        st.info("👆 Klik tombol **'Jalankan Optimasi ACO'** untuk memulai simulasi.")
+
+def empty_state(teks):
+    md(f'<div class="empty">{teks}</div>')
 
 
 # ============================================================
-# TAB 2: KELOLA BAHAN MAKANAN (CRUD)
+# HALAMAN 1 — SIMULASI & OPTIMASI ACO
 # ============================================================
-with tab2:
-    st.markdown("### 📚 Kelola Bahan Makanan")
-    st.caption("Tambah, edit, atau hapus bahan makanan sesuai kebutuhan. Perubahan otomatis tersimpan di sesi ini.")
+def page_simulasi():
+    hasil = st.session_state.hasil
+    ok = bool(hasil and hasil.get("menu_terbaik"))
+    ds = st.session_state.dataset
 
-    # ---- Ringkasan per kategori ----
-    st.markdown("#### 📦 Ringkasan Dataset")
-    cols = st.columns(len(st.session_state.dataset) if st.session_state.dataset else 1)
-    for i, (kat, items) in enumerate(st.session_state.dataset.items()):
-        with cols[i % len(cols)]:
-            st.metric(kat, f"{len(items)} bahan")
-
-    st.markdown("---")
-
-    # ---- FORM TAMBAH BAHAN ----
-    with st.expander("➕ **Tambah Bahan Makanan Baru**", expanded=False):
-        with st.form("form_tambah", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                kategori_baru = st.selectbox(
-                    "Kategori",
-                    list(st.session_state.dataset.keys()) + ["➕ Kategori Baru"],
+    with st.container(key="card-hero"):
+        c_txt, c_btn = st.columns([3, 1.2], vertical_alignment="center")
+        with c_txt:
+            if ok:
+                chips = (
+                    f'<span class="chip"><span class="dot"></span><b style="color:#006948">Status Komputasi:</b> '
+                    f'Konvergen (Iterasi {hasil["iter_konv"]}/{hasil["params"]["iterasi"]})</span>'
+                    f'<span class="chip">{icon("trending_up", 15)}Best Fitness: <b>{rp(hasil["harga_terbaik"])}</b></span>'
+                    f'<span class="chip">{icon("timer", 15)}Waktu Komputasi: <b>{hasil["waktu"]:.2f} dtk</b></span>'
                 )
-                if kategori_baru == "➕ Kategori Baru":
-                    nama_kategori_baru = st.text_input(
-                        "Nama Kategori Baru", placeholder="misal: Buah, Minuman"
-                    )
-                else:
-                    nama_kategori_baru = None
+            else:
+                chips = '<span class="chip"><b style="color:#3d4a42">Status Komputasi:</b> Menunggu dijalankan</span>'
+            total_item = sum(len(v) for v in ds.values())
+            md(f"""
+            <span class="pill" style="background:#00855d;color:#f5fff7">{icon("scatter_plot", 14)}Modul Metaheuristik</span>
+            <span class="muted"> • Dataset aktif: {total_item} bahan dalam {len(ds)} kategori</span>
+            <div class="h1">Simulasi &amp; Optimasi Menu MBG (Ant Colony Optimization)</div>
+            <div class="lead">Model komputasi metaheuristik untuk menentukan kombinasi bahan pangan dan takaran porsi
+            yang memenuhi batas kalori, protein, dan pagu biaya.</div>
+            <div class="chips">{chips}</div>
+            """)
+        with c_btn:
+            st.button("▶ Jalankan Optimasi ACO", type="primary", on_click=jalankan_aco, key="btn_run")
+            if ok:
+                csv = pd.DataFrame(hasil["menu_terbaik"]).to_csv(index=False).encode("utf-8")
+            else:
+                csv = b""
+            st.download_button("⬇ Unduh Menu (.CSV)", data=csv, file_name="menu_mbg_aco.csv",
+                               mime="text/csv", disabled=not ok, key="btn_dl")
+            st.button("↺ Reset Parameter", on_click=reset_params, key="btn_reset")
 
-                nama_bahan = st.text_input("Nama Bahan*", placeholder="misal: Ikan Kembung")
-                icon_bahan = st.text_input("Emoji Icon", value="🍽️", max_chars=4)
+    empty_cats = [k for k, v in ds.items() if not v]
+    if empty_cats:
+        st.warning(f"Kategori berikut kosong dan akan dilewati: {', '.join(empty_cats)}")
 
-            with col2:
+    render_kpis(hasil)
+
+    col_l, col_r = st.columns([5, 7], gap="medium")
+
+    with col_l:
+        with st.container(key="card-params"):
+            sec_head("tune", "Parameter Algoritma ACO", right='<span class="muted">Metaheuristic Hyperparameters</span>')
+            st.slider("Jumlah Koloni Semut (Ant Population)", 10, 200, step=10, key="p_semut")
+            st.slider("Maksimal Siklus / Iterasi", 10, 250, step=10, key="p_iterasi")
+            st.slider("Bobot Jejak Feromon (Alpha / α)", 0.1, 5.0, step=0.1, key="p_alpha")
+            st.slider("Bobot Heuristik Gizi-Biaya (Beta / β)", 0.5, 5.0, step=0.1, key="p_beta")
+            st.slider("Koefisien Penguapan Feromon (Rho / ρ)", 0.05, 0.9, step=0.05, key="p_rho")
+            st.number_input("Konstanta Deposit Jejak (Q)", min_value=10.0, max_value=1000.0, step=10.0, key="p_q")
+
+        with st.container(key="card-batas"):
+            sec_head("checklist", "Batasan Gizi &amp; Biaya")
+            st.number_input("Minimum Kalori (kkal)", min_value=100, max_value=2000, step=50, key="p_min_kalori")
+            st.number_input("Minimum Protein (gram)", min_value=5, max_value=100, step=1, key="p_min_protein")
+            st.number_input("Pagu Biaya Bahan Mentah Maksimal (Rp / porsi)", min_value=5000, max_value=50000,
+                            step=500, key="p_budget")
+
+    with col_r:
+        with st.container(key="card-chart"):
+            sec_head("show_chart", "Grafik Konvergensi Iterasi ACO",
+                     "Perkembangan biaya menu terbaik dan rata-rata koloni tiap iterasi")
+            if ok:
+                fig = grafik_konvergensi(hasil)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
+            elif hasil:
+                empty_state("Belum ada grafik karena tidak ada solusi yang valid.")
+            else:
+                empty_state("Atur parameter lalu klik <b>Jalankan Optimasi ACO</b> untuk melihat grafik konvergensi.")
+
+        with st.container(key="card-menu"):
+            badge = f'<span class="badge b-ok">{len(hasil["menu_terbaik"])} Komponen Siap Saji</span>' if ok else ""
+            sec_head("restaurant_menu", "Kompilasi Menu &amp; Rekomendasi Takaran Porsi", right=badge)
+            if ok:
+                md(html_menu(hasil["menu_terbaik"], hasil["harga_terbaik"], hasil["params"]))
+            elif hasil:
+                st.error("Semut gagal menemukan kombinasi yang valid.")
+                st.markdown(
+                    "- Turunkan **Minimum Kalori** atau **Minimum Protein**\n"
+                    "- Naikkan **Pagu Biaya**\n"
+                    "- Tambah bahan di tiap kategori pada halaman *Katalog Bahan*\n"
+                    "- Naikkan **Jumlah Semut** atau **Iterasi**"
+                )
+            else:
+                empty_state("Menu hasil optimasi akan tampil di sini.")
+
+    if ok:
+        with st.container(key="card-table"):
+            sec_head("table_chart", "Detail Tabel Menu")
+            df = pd.DataFrame([
+                {"Kategori": m["kategori"], "Bahan": m["nama"], "Porsi (g)": m["gram"],
+                 "Harga (Rp)": round(m["harga"]), "Kalori (kkal)": round(m["kalori"], 1),
+                 "Protein (g)": round(m["protein"], 1)}
+                for m in hasil["menu_terbaik"]
+            ])
+            st.dataframe(df, hide_index=True, use_container_width=True)
+
+    md(f"""
+    <div class="banner"><div class="banner-ico">{icon("verified_user", 18)}</div>
+    <div><b>Hasil simulasi dapat diunduh sebagai CSV</b>
+    <span>Gunakan sebagai dasar daftar belanja logistik dan verifikasikan dengan tenaga ahli gizi sebelum dipakai.</span></div></div>
+    """)
+
+
+# ============================================================
+# HALAMAN 2 — KATALOG BAHAN (CRUD)
+# ============================================================
+def simpan_kategori(kat, edited, hapus_dicentang):
+    new_items, removed = [], 0
+    for _, row in edited.iterrows():
+        if hapus_dicentang and row["hapus"]:
+            removed += 1
+            continue
+        new_items.append({
+            "nama": row["nama"], "harga": int(row["harga"]), "kalori": float(row["kalori"]),
+            "protein": float(row["protein"]), "icon": row.get("icon", "🍽️") or "🍽️",
+        })
+    st.session_state.dataset[kat] = new_items
+    st.session_state.pop(f"editor_{kat}", None)
+    return removed
+
+
+def page_katalog():
+    ds = st.session_state.dataset
+    page_intro("Basis Data Pangan", "Katalog Bahan Makanan",
+               "Tambah, ubah, atau hapus bahan makanan. Semua nilai gizi dan harga dihitung per 100 gram. "
+               "Perubahan tersimpan selama sesi ini berjalan.")
+
+    if ds:
+        cells = "".join(
+            f'<div class="kpi"><div class="kpi-top"><span>{escape(k)}</span></div>'
+            f'<div class="kpi-val">{len(v)} <small>bahan</small></div></div>' for k, v in ds.items()
+        )
+        md(f'<div class="kpi-grid">{cells}</div>')
+
+    with st.container(key="card-tambah"):
+        sec_head("add_circle", "Tambah Bahan Baru")
+        with st.form("form_tambah", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                kat_pilih = st.selectbox("Kategori", list(ds.keys())) if ds else None
+                kat_baru = st.text_input("Atau buat kategori baru", placeholder="misal: Minuman (kosongkan jika memakai kategori di atas)")
+                nama = st.text_input("Nama Bahan*", placeholder="misal: Ikan Kembung")
+                ikon = st.text_input("Emoji Icon", value="🍽️", max_chars=4)
+            with c2:
                 harga = st.number_input("Harga per 100g (Rp)*", 0, 100000, 2000, 100)
                 kalori = st.number_input("Kalori per 100g (kkal)*", 0.0, 2000.0, 100.0, 5.0)
                 protein = st.number_input("Protein per 100g (g)*", 0.0, 200.0, 5.0, 0.5)
-
-            submitted = st.form_submit_button("💾 Simpan Bahan", type="primary", use_container_width=True)
-
-            if submitted:
-                target_kat = nama_kategori_baru.strip() if kategori_baru == "➕ Kategori Baru" else kategori_baru
-                if not nama_bahan.strip():
-                    st.error("❌ Nama bahan wajib diisi.")
-                elif not target_kat:
-                    st.error("❌ Nama kategori baru wajib diisi.")
+            if st.form_submit_button("💾 Simpan Bahan", type="primary"):
+                target = kat_baru.strip() or kat_pilih
+                if not nama.strip():
+                    st.error("Nama bahan wajib diisi.")
+                elif not target:
+                    st.error("Pilih atau isi nama kategori.")
+                elif nama.strip().lower() in [m["nama"].lower() for m in ds.get(target, [])]:
+                    st.error(f"Bahan '{nama}' sudah ada di kategori '{target}'.")
                 else:
-                    # Cek duplikat
-                    existing = [m["nama"].lower() for m in st.session_state.dataset.get(target_kat, [])]
-                    if nama_bahan.strip().lower() in existing:
-                        st.error(f"❌ Bahan '{nama_bahan}' sudah ada di kategori '{target_kat}'.")
-                    else:
-                        if target_kat not in st.session_state.dataset:
-                            st.session_state.dataset[target_kat] = []
-                        st.session_state.dataset[target_kat].append({
-                            "nama": nama_bahan.strip(),
-                            "harga": int(harga),
-                            "kalori": float(kalori),
-                            "protein": float(protein),
-                            "icon": icon_bahan or "🍽️",
-                        })
-                        st.success(f"✅ '{nama_bahan}' ditambahkan ke kategori '{target_kat}'.")
-                        st.rerun()
-
-    # ---- EDIT & HAPUS PER KATEGORI ----
-    st.markdown("#### ✏️ Edit & Hapus Bahan")
-    st.caption("Ubah nilai langsung di tabel, lalu klik **Simpan Perubahan**. Atau centang baris lalu klik **Hapus**.")
-
-    for kat in list(st.session_state.dataset.keys()):
-        items = st.session_state.dataset[kat]
-        with st.expander(f"**{kat}** — {len(items)} bahan", expanded=True):
-            if not items:
-                st.info("Kategori ini kosong. Tambahkan bahan di form atas.")
-                # Tombol hapus kategori kosong
-                if st.button(f"🗑️ Hapus Kategori '{kat}'", key=f"del_kat_{kat}"):
-                    del st.session_state.dataset[kat]
-                    st.success(f"Kategori '{kat}' dihapus.")
+                    ds.setdefault(target, []).append({
+                        "nama": nama.strip(), "harga": int(harga), "kalori": float(kalori),
+                        "protein": float(protein), "icon": ikon or "🍽️",
+                    })
                     st.rerun()
+
+    with st.container(key="card-edit"):
+        sec_head("edit_note", "Edit &amp; Hapus Bahan",
+                 "Ubah nilai langsung di tabel. Centang kolom 🗑️ lalu klik Hapus untuk membuang baris.")
+        for kat in list(ds.keys()):
+            items = ds[kat]
+            with st.expander(f"{kat} — {len(items)} bahan", expanded=True):
+                if not items:
+                    st.info("Kategori ini kosong. Tambahkan bahan lewat form di atas.")
+                    if st.button(f"Hapus kategori '{kat}'", key=f"delkat_{kat}"):
+                        del ds[kat]
+                        st.rerun()
+                    continue
+                df = pd.DataFrame(items)
+                df.insert(0, "hapus", False)
+                edited = st.data_editor(
+                    df, key=f"editor_{kat}", hide_index=True, num_rows="fixed",
+                    use_container_width=True,
+                    column_config={
+                        "hapus": st.column_config.CheckboxColumn("🗑️", width="small"),
+                        "icon": st.column_config.TextColumn("Icon", width="small", max_chars=4),
+                        "nama": st.column_config.TextColumn("Nama Bahan", required=True),
+                        "harga": st.column_config.NumberColumn("Harga/100g (Rp)", min_value=0, step=100, format="%d"),
+                        "kalori": st.column_config.NumberColumn("Kalori/100g", min_value=0.0, step=1.0, format="%.1f"),
+                        "protein": st.column_config.NumberColumn("Protein/100g (g)", min_value=0.0, step=0.5, format="%.1f"),
+                    },
+                )
+                ca, cb, cc = st.columns([1, 1, 1])
+                if ca.button("💾 Simpan Perubahan", key=f"save_{kat}"):
+                    simpan_kategori(kat, edited, hapus_dicentang=False)
+                    st.rerun()
+                if cb.button("🗑️ Hapus yang Dicentang", key=f"delcheck_{kat}"):
+                    simpan_kategori(kat, edited, hapus_dicentang=True)
+                    st.rerun()
+                if cc.button(f"❌ Hapus Kategori", key=f"delall_{kat}"):
+                    del ds[kat]
+                    st.rerun()
+
+    with st.container(key="card-backup"):
+        sec_head("database", "Backup &amp; Restore Dataset")
+        col_exp, col_imp = st.columns(2)
+        with col_exp:
+            rows = [{**m, "kategori": k} for k, v in ds.items() for m in v]
+            if rows:
+                df_all = pd.DataFrame(rows)[["kategori", "nama", "icon", "harga", "kalori", "protein"]]
+                st.download_button("⬇ Unduh Dataset (.CSV)", data=df_all.to_csv(index=False).encode("utf-8"),
+                                   file_name="dataset_bahan_mbg.csv", mime="text/csv", key="dl_dataset")
+            st.button("↺ Reset Dataset ke Default", on_click=reset_dataset, key="btn_reset_ds")
+        with col_imp:
+            up = st.file_uploader("⬆ Upload Dataset (.CSV)", type=["csv"], key="upload_dataset")
+            if up is not None:
+                try:
+                    df_in = pd.read_csv(up)
+                    need = {"kategori", "nama", "harga", "kalori", "protein"}
+                    if not need.issubset(df_in.columns):
+                        st.error(f"CSV harus punya kolom: {sorted(need)}")
+                    else:
+                        new_ds = {}
+                        for _, r in df_in.iterrows():
+                            new_ds.setdefault(str(r["kategori"]), []).append({
+                                "nama": str(r["nama"]), "harga": int(r["harga"]),
+                                "kalori": float(r["kalori"]), "protein": float(r["protein"]),
+                                "icon": str(r["icon"]) if "icon" in df_in.columns else "🍽️",
+                            })
+                        if st.button("✅ Terapkan Dataset dari CSV", key="apply_csv"):
+                            st.session_state.dataset = new_ds
+                            st.rerun()
+                except Exception as e:
+                    st.error(f"Gagal membaca CSV: {e}")
+        with st.expander("Lihat dataset (JSON)"):
+            st.json(ds)
+
+
+# ============================================================
+# HALAMAN 3 — PERENCANAAN MINGGUAN
+# ============================================================
+def page_mingguan():
+    page_intro("Perencanaan", "Perencanaan Menu Mingguan",
+               "Jalankan ACO sekali untuk tiap hari sekolah (Senin–Jumat) dengan parameter dan batasan yang sedang "
+               "diatur di halaman Simulasi. Karena ACO bersifat stokastik, menu tiap hari bisa berbeda.")
+    st.button("📅 Susun Rencana Mingguan", type="primary", on_click=susun_mingguan, key="btn_week")
+
+    data = st.session_state.mingguan
+    with st.container(key="card-week"):
+        sec_head("calendar_month", "Rencana Lima Hari")
+        if not data:
+            empty_state("Klik <b>Susun Rencana Mingguan</b> untuk membuat menu Senin–Jumat.")
+            return
+        cards, total, rows = "", 0, []
+        for d in data["rencana"]:
+            if not d["menu"]:
+                cards += f'<div class="day"><div class="day-h"><b>{d["hari"]}</b><span>—</span></div><div class="day-i">Tidak ada solusi valid</div></div>'
                 continue
-
-            df = pd.DataFrame(items)
-            df.insert(0, "hapus", False)
-            edited = st.data_editor(
-                df,
-                key=f"editor_{kat}",
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "hapus": st.column_config.CheckboxColumn("🗑️", width="small"),
-                    "icon": st.column_config.TextColumn("Icon", width="small", max_chars=4),
-                    "nama": st.column_config.TextColumn("Nama Bahan", required=True),
-                    "harga": st.column_config.NumberColumn("Harga/100g (Rp)", min_value=0, step=100, format="%d"),
-                    "kalori": st.column_config.NumberColumn("Kalori/100g", min_value=0.0, step=1.0, format="%.1f"),
-                    "protein": st.column_config.NumberColumn("Protein/100g (g)", min_value=0.0, step=0.5, format="%.1f"),
-                },
-                num_rows="fixed",
+            total += d["harga"]
+            items = "".join(
+                f'<div class="day-i"><span>{escape(str(m["icon"]))} {escape(m["nama"])}</span><span>{m["gram"]} g</span></div>'
+                for m in d["menu"]
             )
-
-            col_a, col_b, col_c = st.columns([1, 1, 2])
-            with col_a:
-                if st.button(f"💾 Simpan Perubahan", key=f"save_{kat}", use_container_width=True):
-                    new_items = []
-                    for _, row in edited.iterrows():
-                        if not row["hapus"]:
-                            new_items.append({
-                                "nama": row["nama"],
-                                "harga": int(row["harga"]),
-                                "kalori": float(row["kalori"]),
-                                "protein": float(row["protein"]),
-                                "icon": row.get("icon", "🍽️"),
-                            })
-                    st.session_state.dataset[kat] = new_items
-                    st.success(f"✅ Perubahan '{kat}' disimpan.")
-                    st.rerun()
-            with col_b:
-                if st.button(f"🗑️ Hapus yang Dicentang", key=f"delcheck_{kat}", use_container_width=True):
-                    new_items = []
-                    for _, row in edited.iterrows():
-                        if not row["hapus"]:
-                            new_items.append({
-                                "nama": row["nama"],
-                                "harga": int(row["harga"]),
-                                "kalori": float(row["kalori"]),
-                                "protein": float(row["protein"]),
-                                "icon": row.get("icon", "🍽️"),
-                            })
-                    removed = len(items) - len(new_items)
-                    st.session_state.dataset[kat] = new_items
-                    if removed > 0:
-                        st.success(f"🗑️ {removed} bahan dihapus dari '{kat}'.")
-                    else:
-                        st.info("Tidak ada baris yang dicentang.")
-                    st.rerun()
-            with col_c:
-                # Tombol hapus seluruh kategori
-                if st.button(f"❌ Hapus Seluruh Kategori '{kat}'", key=f"delall_{kat}", use_container_width=True):
-                    del st.session_state.dataset[kat]
-                    st.success(f"Kategori '{kat}' beserta {len(items)} bahan dihapus.")
-                    st.rerun()
-
-    # ---- EXPORT / IMPORT DATASET ----
-    st.markdown("---")
-    st.markdown("#### 💾 Backup / Restore Dataset")
-
-    col_exp, col_imp = st.columns(2)
-
-    with col_exp:
-        # Export ke CSV (flatten)
-        rows = []
-        for kat, items in st.session_state.dataset.items():
-            for m in items:
-                rows.append({**m, "kategori": kat})
+            cards += f'<div class="day"><div class="day-h"><b>{d["hari"]}</b><span>{rp(d["harga"])}</span></div>{items}</div>'
+            rows += [{"Hari": d["hari"], "Kategori": m["kategori"], "Bahan": m["nama"], "Porsi (g)": m["gram"],
+                      "Harga (Rp)": round(m["harga"]), "Kalori (kkal)": round(m["kalori"], 1),
+                      "Protein (g)": round(m["protein"], 1)} for m in d["menu"]]
+        md(f'<div class="day-grid">{cards}</div>')
+        md(f"""
+        <div class="total-box"><div><div class="total-label">Total Biaya Bahan Satu Minggu (per porsi)</div></div>
+        <div class="total-price">{rp(total)}</div></div>
+        """)
         if rows:
-            df_all = pd.DataFrame(rows)[["kategori", "nama", "icon", "harga", "kalori", "protein"]]
-            csv_all = df_all.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "⬇️ Unduh Dataset (.CSV)",
-                data=csv_all,
-                file_name="dataset_bahan_mbg.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
+            df = pd.DataFrame(rows)
+            st.download_button("⬇ Unduh Rencana Mingguan (.CSV)", data=df.to_csv(index=False).encode("utf-8"),
+                               file_name="rencana_mingguan_mbg.csv", mime="text/csv", key="dl_week")
+            with st.expander("Lihat tabel lengkap"):
+                st.dataframe(df, hide_index=True, use_container_width=True)
 
-    with col_imp:
-        uploaded = st.file_uploader("⬆️ Upload Dataset (.CSV)", type=["csv"], key="upload_dataset")
-        if uploaded is not None:
-            try:
-                df_in = pd.read_csv(uploaded)
-                required = {"kategori", "nama", "harga", "kalori", "protein"}
-                if not required.issubset(df_in.columns):
-                    st.error(f"❌ CSV harus punya kolom: {required}")
-                else:
-                    new_ds = {}
-                    for _, r in df_in.iterrows():
-                        kat = str(r["kategori"])
-                        new_ds.setdefault(kat, []).append({
-                            "nama": str(r["nama"]),
-                            "harga": int(r["harga"]),
-                            "kalori": float(r["kalori"]),
-                            "protein": float(r["protein"]),
-                            "icon": str(r.get("icon", "🍽️")) if "icon" in df_in.columns else "🍽️",
-                        })
-                    if st.button("✅ Terapkan Dataset dari CSV", use_container_width=True):
-                        st.session_state.dataset = new_ds
-                        st.success("Dataset berhasil diimpor!")
-                        st.rerun()
-            except Exception as e:
-                st.error(f"Gagal membaca CSV: {e}")
 
-    # Preview JSON
-    with st.expander("🔍 Lihat Dataset (JSON)"):
-        st.json(st.session_state.dataset)
+# ============================================================
+# HALAMAN 4 — LAPORAN & EVALUASI BIAYA
+# ============================================================
+def page_laporan():
+    page_intro("Evaluasi", "Laporan &amp; Evaluasi Biaya",
+               "Rincian biaya dari hasil simulasi terakhir dan rencana mingguan (jika sudah disusun).")
+    hasil, mg = st.session_state.hasil, st.session_state.mingguan
+    ok = bool(hasil and hasil.get("menu_terbaik"))
+
+    if not ok and not mg:
+        with st.container(key="card-lap-kosong"):
+            empty_state("Belum ada data. Jalankan optimasi di halaman <b>Simulasi &amp; Optimasi ACO</b> terlebih dahulu.")
+        return
+
+    if ok:
+        p, menu, harga = hasil["params"], hasil["menu_terbaik"], hasil["harga_terbaik"]
+        sisa = p["budget"] - harga
+        cards = [
+            kpi("Biaya Menu Harian", "payments", "#ffdcc3", "#2f1500", rp(harga), f'Pagu: {rp(p["budget"])}',
+                "b-ok", "savings", f"Sisa {rp(sisa)}"),
+            kpi("Pemakaian Pagu", "percent", "#85f8c4", "#002114", f'{harga / p["budget"] * 100:.1f}<small>%</small>',
+                "Dari pagu per porsi", "b-ok", "check_circle", "Dalam anggaran"),
+        ]
+        if mg:
+            valid = [d["harga"] for d in mg["rencana"] if d["menu"]]
+            if valid:
+                cards += [
+                    kpi("Rata-rata Harian (Minggu)", "calendar_month", "#dae2fd", "#131b2e", rp(sum(valid) / len(valid)),
+                        f"{len(valid)} hari tersusun", "b-neutral", "info", "Dari rencana mingguan"),
+                    kpi("Total Satu Minggu", "account_balance_wallet", "#dce9ff", "#006948", rp(sum(valid)),
+                        "Per porsi, Senin–Jumat", "b-neutral", "info", "Dari rencana mingguan"),
+                ]
+        md(f'<div class="kpi-grid">{"".join(cards)}</div>')
+
+        with st.container(key="card-lap-kat"):
+            sec_head("pie_chart", "Distribusi Biaya per Kategori", "Menu terbaik dari simulasi terakhir")
+            per_kat = {}
+            for m in menu:
+                per_kat[m["kategori"]] = per_kat.get(m["kategori"], 0) + m["harga"]
+            md(f'<div class="bars">{"".join(bar(escape(k), f"{rp(v)} ({v / harga * 100:.0f}%)", v / harga * 100) for k, v in per_kat.items())}</div>')
+    else:
+        with st.container(key="card-lap-info"):
+            empty_state("Rincian per kategori tersedia setelah simulasi dijalankan di halaman Simulasi.")
+
+
+# ============================================================
+# RAKIT HALAMAN
+# ============================================================
+render_header()
+with st.sidebar:
+    md('<div class="nav-label">Navigasi Sistem</div>')
+    st.radio("Navigasi", NAV, key="nav", label_visibility="collapsed")
+    render_sidebar_card(st.session_state.hasil)
+
+{
+    NAV[0]: page_simulasi,
+    NAV[1]: page_katalog,
+    NAV[2]: page_mingguan,
+    NAV[3]: page_laporan,
+}[st.session_state.nav]()
