@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# CSS — FIX SELECTBOX TOTAL & PUSH LAYOUT
+# CSS — meniru desain Google Stitch (palet Material, Plus Jakarta Sans)
 # ============================================================
 CSS = """
 <style>
@@ -40,96 +40,74 @@ CSS = """
 .stApp input, .stApp button, .stApp textarea, .stApp td, .stApp th {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
-header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
-#MainMenu, footer { display: none !important; }
+.stApp, section[data-testid="stSidebar"] { color-scheme: light !important; }
+header[data-testid="stHeader"] {
+  position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 1000001;
+  background: transparent !important; backdrop-filter: none !important; pointer-events: none;
+}
+[data-testid="stToolbar"] { background: transparent !important; backdrop-filter: none !important; }
+[data-testid="stAppDeployButton"], [data-testid="stMainMenu"], [data-testid="stStatusWidget"],
+[data-testid="stDecoration"], #MainMenu, footer { display: none !important; }
 
-/* ============================================================
-   FIX TOTAL: SIDEBAR OVERLAY (TIDAK MENDORONG KONTEN)
-   ============================================================ */
-section[data-testid="stSidebar"] {
-  position: fixed !important; top: 0 !important; left: 0 !important; height: 100vh !important;
-  width: 260px !important; min-width: 260px !important; max-width: 260px !important;
-  background: #ffffff !important; border-right: 1px solid #e0e7e3 !important;
-  box-shadow: 4px 0 24px rgba(0,0,0,0.08) !important; z-index: 1000 !important;
-  transition: transform 0.3s ease, visibility 0.3s ease !important;
-}
-section[data-testid="stSidebar"][aria-expanded="false"] {
-  transform: translateX(-100%) !important; visibility: hidden !important;
-}
-[data-testid="stAppViewContainer"] > section.main, .stApp > section.main, .stMainBlockContainer {
-  margin-left: 0 !important; padding-left: 0 !important; transition: none !important;
+/* ---------- Tombol buka/tutup sidebar (di pojok kiri header) ---------- */
+[data-testid="stExpandSidebarButton"], [data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"] {
+  position: fixed !important; top: 12px !important; left: 16px !important; z-index: 1000002 !important;
+  opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;
 }
 
-[data-testid="stSidebarHeader"] { display: none !important; }
-
-[data-testid="stSidebarCollapseButton"] {
-  position: absolute !important; top: 16px !important; right: 12px !important;
-  z-index: 1001 !important; display: flex !important;
-}
-[data-testid="stSidebarCollapseButton"] button {
-  background: #eff4ff !important; color: #006948 !important; border-radius: 8px !important;
-  width: 32px !important; height: 32px !important; padding: 0 !important; border: none !important;
-}
-[data-testid="stSidebarCollapseButton"] button:hover { background: #dce9ff !important; }
-[data-testid="stSidebarCollapseButton"] button svg { fill: #006948 !important; }
-
-[data-testid="collapsedControl"], [data-testid="stSidebarCollapsedControl"] {
-  position: fixed !important; top: 16px !important; left: 16px !important; z-index: 1001 !important;
-  display: flex !important; background: #ffffff !important; border-radius: 8px !important;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
-}
-[data-testid="collapsedControl"] button, [data-testid="stSidebarCollapsedControl"] button {
-  background: transparent !important; color: #006948 !important; border: none !important;
-  width: 36px !important; height: 36px !important;
-}
-[data-testid="collapsedControl"] button:hover, [data-testid="stSidebarCollapsedControl"] button:hover { background: #e5eeff !important; }
-[data-testid="collapsedControl"] button svg, [data-testid="stSidebarCollapsedControl"] button svg { fill: #006948 !important; }
-
-[data-testid="stSidebarUserContent"] { padding: 72px 16px 24px 16px !important; }
-.nav-label {
-  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-  color: #6d7a72; padding: 0 8px 12px 8px;
+/* Latar belakang tombol: Hijau */
+[data-testid="stExpandSidebarButton"], 
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button {
+  width: 40px !important; height: 40px !important; border-radius: 10px !important; 
+  background: #006948 !important; border: none !important;
+  display: flex !important; align-items: center !important; justify-content: center !important; 
+  transition: background .15s; box-shadow: 0 2px 6px rgba(0,105,72,.3) !important;
+  position: relative !important;
 }
 
-/* Menu Navigasi Radio */
-section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 6px !important; display: flex; flex-direction: column; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-  width: 100% !important; margin: 0 !important; padding: 12px 16px !important;
-  border-radius: 10px !important; cursor: pointer; transition: background .15s;
-  min-height: 48px; display: flex !important; align-items: center !important;
+/* Efek Hover */
+[data-testid="stExpandSidebarButton"]:hover, 
+[data-testid="stSidebarCollapseButton"] button:hover,
+[data-testid="stSidebarCollapsedControl"] button:hover,
+[data-testid="collapsedControl"] button:hover { 
+  background: #00855d !important; 
 }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { background: #dce9ff !important; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child { display: none !important; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label p {
-  display: flex !important; align-items: center !important; gap: 12px !important;
-  margin: 0 !important; font-size: 14px !important; font-weight: 600 !important;
-  color: #3d4a42 !important; line-height: 1.2 !important;
-}
-section[data-testid="stSidebar"] div[role="radiogroup"] > label p::before {
-  font-family: 'Material Symbols Outlined'; font-weight: normal;
-  font-size: 22px; line-height: 1; font-feature-settings: 'liga'; flex-shrink: 0;
-}
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) { background: #00855d !important; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p { color: #f5fff7 !important; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(1) p::before { content: 'hub'; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(2) p::before { content: 'nutrition'; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(3) p::before { content: 'calendar_month'; }
-section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(4) p::before { content: 'monitoring'; }
 
-.side-card { margin-top: 32px; padding: 16px; border-radius: 12px; background: #eff4ff; }
-.side-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #006948; }
-.side-row span:last-child { font-weight: 500; color: #3d4a42; }
-.side-note { font-size: 11px; color: #3d4a42; margin-top: 8px; }
+/* 1. SEMBUNYIKAN total ikon bawaan Streamlit (yang bikin kotak) */
+[data-testid="stExpandSidebarButton"] svg, 
+[data-testid="stSidebarCollapseButton"] svg,
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg,
+[data-testid="stExpandSidebarButton"] span, 
+[data-testid="stSidebarCollapseButton"] span,
+[data-testid="stSidebarCollapsedControl"] span,
+[data-testid="collapsedControl"] span {
+  display: none !important;
+}
 
-/* ============================================================
-   HEADER UTAMA (Statis, tidak ikut bergeser)
-   ============================================================ */
+/* 2. GANTI dengan panah CSS murni berwarna putih */
+[data-testid="stExpandSidebarButton"]::after, 
+[data-testid="stSidebarCollapseButton"] button::after,
+[data-testid="stSidebarCollapsedControl"] button::after,
+[data-testid="collapsedControl"] button::after {
+  content: '❯' !important; /* Karakter panah */
+  color: #ffffff !important; /* Warna panah putih */
+  font-size: 20px !important;
+  font-family: Arial, sans-serif !important;
+  font-weight: bold !important;
+  display: block !important;
+  line-height: 1 !important;
+}
+
+/* ---------- Header tetap di atas ---------- */
 .app-header {
-  position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 999;
-  background: rgba(255,255,255,0.95); backdrop-filter: blur(16px);
+  position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 1000000;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(16px);
   box-shadow: 0 1px 8px rgba(0,0,0,0.04);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px 0 64px;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 32px 0 72px;
 }
 .brand { display: flex; align-items: center; gap: 12px; }
 .logo {
@@ -153,70 +131,92 @@ section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(4) p
 .dot { width: 6px; height: 6px; border-radius: 50%; background: #006948; animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
-/* ---------- Konten Utama ---------- */
-.block-container { padding: 6rem 2rem 3rem 2rem !important; max-width: 100% !important; }
+/* ---------- Sidebar navigasi ---------- */
+section[data-testid="stSidebar"] {
+  background: #ffffff; border-right: none; box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+}
+section[data-testid="stSidebar"]:not([data-collapsed="true"]):not([aria-expanded="false"]) {
+  width: 256px !important; min-width: 256px !important; max-width: 256px !important;
+}
+[data-testid="stSidebarResizeHandle"] { display: none !important; }
+[data-testid="stSidebarHeader"] { height: 0 !important; min-height: 0 !important; padding: 0 !important; overflow: visible !important; }
+[data-testid="stLogoSpacer"] { display: none !important; }
+[data-testid="stSidebarUserContent"] { padding: 5.5rem 0.75rem 1rem 0.75rem !important; }
+.nav-label { font-size: 11px; font-weight: 500; letter-spacing: .04em; color: #3d4a42; padding: 0 8px 6px 8px; }
 
-/* ---------- Komponen ---------- */
-[class*="st-key-card-"] { background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+section[data-testid="stSidebar"] div[role="radiogroup"] { gap: 4px; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+  width: 100%; margin: 0; padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: background .15s;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { background: #dce9ff; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child { display: none; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label p {
+  display: flex; align-items: center; gap: 12px; margin: 0;
+  font-size: 14px; font-weight: 600; color: #3d4a42 !important;
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label p::before {
+  font-family: 'Material Symbols Outlined'; font-weight: normal; font-size: 20px; line-height: 1;
+  font-feature-settings: 'liga';
+}
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) { background: #00855d; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p { color: #f5fff7 !important; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(1) p::before { content: 'hub'; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(2) p::before { content: 'nutrition'; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(3) p::before { content: 'calendar_month'; }
+section[data-testid="stSidebar"] div[role="radiogroup"] > label:nth-of-type(4) p::before { content: 'monitoring'; }
+.side-card { margin-top: 28px; padding: 12px; border-radius: 12px; background: #eff4ff; }
+.side-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: #006948; }
+.side-row span:last-child { font-weight: 500; color: #3d4a42; }
+.side-note { font-size: 11px; color: #3d4a42; margin-top: 6px; }
+
+/* ---------- Kartu (st.container dengan key "card-...") ---------- */
+[class*="st-key-card-"] {
+  background: #ffffff; border-radius: 12px; padding: 24px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+}
+
+/* ---------- Tombol ---------- */
 .stButton, .stDownloadButton, [data-testid="stFormSubmitButton"] { width: 100%; }
 .stButton button, .stDownloadButton button, [data-testid="stFormSubmitButton"] button {
   width: 100%; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 600; transition: all .15s;
 }
-button[kind="primary"] { background: #006948 !important; color: #ffffff !important; }
-button[kind="primary"]:hover { background: #00855d !important; }
-button[kind="secondary"] { background: #e5eeff !important; color: #0b1c30 !important; }
-button[kind="secondary"]:hover { background: #dce9ff !important; }
+button[kind="primary"], button[data-testid="stBaseButton-primary"] { background: #006948 !important; color: #ffffff !important; }
+button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover { background: #00855d !important; }
+button[kind="secondary"], button[data-testid="stBaseButton-secondary"] { background: #e5eeff !important; color: #0b1c30 !important; }
+button[kind="secondary"]:hover, button[data-testid="stBaseButton-secondary"]:hover { background: #dce9ff !important; }
+.stButton button p, .stDownloadButton button p, [data-testid="stFormSubmitButton"] button p { color: inherit !important; }
+.stButton button:disabled, .stDownloadButton button:disabled { opacity: .5; }
 
-/* Input & Selectbox */
-[data-baseweb="input"], [data-baseweb="base-input"] {
-  background: #eff4ff !important; border-radius: 8px !important; border: 1px solid #bccac0 !important;
+/* ---------- Input ---------- */
+[data-baseweb="input"], [data-baseweb="base-input"], [data-baseweb="select"] > div {
+  background: #eff4ff !important; border-radius: 8px !important; border: none !important;
 }
-[data-baseweb="input"] input, [data-testid="stNumberInput"] input, [data-testid="stTextInput"] input {
-  color: #0b1c30 !important; -webkit-text-fill-color: #0b1c30 !important; font-weight: 600 !important;
-}
-[data-testid="stWidgetLabel"] p { font-size: 12px; font-weight: 600; color: #0b1c30 !important; }
-
-/* ============================================================
-   FIX TOTAL: SELECTBOX (Warna Teks Putih jadi Hitam)
-   ============================================================ */
-/* 1. Kontainer Utama */
-div[data-baseweb="select"] > div {
-  background-color: #eff4ff !important;
-  border: 1px solid #bccac0 !important;
-  border-radius: 8px !important;
-}
-/* 2. Paksa semua teks, span, div, dan input di dalam selectbox jadi hitam */
-div[data-baseweb="select"] * {
-  color: #0b1c30 !important;
-  -webkit-text-fill-color: #0b1c30 !important;
-  font-weight: 600 !important;
-}
-/* 3. Ikon panah (chevron) */
-div[data-baseweb="select"] svg {
-  fill: #006948 !important;
-  color: #006948 !important;
-}
-/* 4. Dropdown List (saat diklik) */
-div[data-baseweb="popover"] ul {
-  background-color: #ffffff !important;
-  border: 1px solid #bccac0 !important;
-}
-div[data-baseweb="popover"] li {
-  color: #0b1c30 !important;
-  background-color: #ffffff !important;
-  font-weight: 500 !important;
-}
-div[data-baseweb="popover"] li:hover {
-  background-color: #e5eeff !important;
-  color: #006948 !important;
-}
-
-/* Slider */
+[data-testid="stWidgetLabel"] p { font-size: 12px; font-weight: 600; color: #0b1c30; }
 [data-testid="stSlider"] div[role="slider"] { background-color: #006948 !important; }
-[data-testid="stSliderThumbValue"] { color: #006948 !important; font-weight: 700 !important; background: #ffffff !important; border-radius: 6px; padding: 1px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+[data-testid="stSliderThumbValue"] { color: #006948 !important; font-weight: 600; }
+[data-testid="stExpander"] { border: none !important; background: #eff4ff; border-radius: 12px; }
+[data-testid="stExpander"] summary, [data-testid="stExpander"] summary * { color: #0b1c30 !important; }
+.stApp input, .stApp textarea {
+  color: #0b1c30 !important; -webkit-text-fill-color: #0b1c30 !important; caret-color: #006948;
+}
+.stApp input::placeholder, .stApp textarea::placeholder {
+  color: #6d7a72 !important; -webkit-text-fill-color: #6d7a72 !important; opacity: 1;
+}
+[data-baseweb="select"] * { color: #0b1c30 !important; }
+[data-baseweb="select"] svg { fill: #3d4a42 !important; }
+[data-baseweb="popover"] ul, [data-baseweb="popover"] [data-baseweb="menu"] { background: #ffffff !important; }
+[data-baseweb="popover"] li, [data-baseweb="popover"] [role="option"] { background: #ffffff !important; color: #0b1c30 !important; }
+[data-baseweb="popover"] li:hover, [data-baseweb="popover"] [aria-selected="true"] { background: #eff4ff !important; }
+[data-testid="stNumberInput"] button { background: #dce9ff !important; color: #0b1c30 !important; border: none !important; }
+[data-testid="stNumberInput"] button svg { fill: #0b1c30 !important; }
+[data-testid="stFileUploaderDropzone"] { background: #eff4ff !important; border-radius: 12px; }
+[data-testid="stFileUploaderDropzone"] * { color: #0b1c30 !important; }
+[data-testid="stForm"] { border: 1px solid #d3e4fe !important; border-radius: 12px; }
+[data-testid="stTickBarMin"], [data-testid="stTickBarMax"] { color: #3d4a42 !important; }
+.stApp [data-testid="stMarkdownContainer"] p, .stApp [data-testid="stMarkdownContainer"] li { color: #0b1c30; }
 
-/* Custom HTML Kelas */
-.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+/* ---------- Komponen HTML kustom ---------- */
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
 .sec-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: #0b1c30; }
 .sec-title .material-symbols-outlined { color: #006948; font-size: 22px; }
 .sec-sub { font-size: 11px; color: #3d4a42; }
@@ -224,11 +224,18 @@ div[data-baseweb="popover"] li:hover {
 .h1 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.01em; color: #0b1c30; margin: 6px 0; }
 .lead { font-size: 14px; line-height: 22px; color: #3d4a42; max-width: 760px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: #e5eeff; font-size: 11px; font-weight: 500; color: #0b1c30; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
+  background: #e5eeff; font-size: 11px; font-weight: 500; color: #0b1c30;
+}
 .chip b { font-weight: 700; }
 
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.kpi { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  display: flex; flex-direction: column; gap: 10px;
+}
 .kpi-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: #3d4a42; }
 .kpi-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
 .kpi-val { font-size: 32px; line-height: 40px; font-weight: 700; letter-spacing: -.03em; color: #0b1c30; }
@@ -240,16 +247,25 @@ div[data-baseweb="popover"] li:hover {
 .b-err { background: #ffdad6; color: #93000a; }
 .b-neutral { background: #dce9ff; color: #3d4a42; }
 
-.meal { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: #eff4ff; border-radius: 12px; margin-bottom: 8px; transition: background .15s; flex-wrap: wrap; }
+.meal {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px; background: #eff4ff; border-radius: 12px; margin-bottom: 8px; transition: background .15s;
+}
 .meal:hover { background: #e5eeff; }
-.meal-l { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 240px; }
-.meal-ico { width: 40px; height: 40px; border-radius: 8px; background: #d3e4fe; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.meal-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.meal-ico {
+  width: 40px; height: 40px; border-radius: 8px; background: #d3e4fe; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
 .meal-name { font-size: 14px; font-weight: 600; color: #0b1c30; }
 .tag { font-size: 11px; font-weight: 500; padding: 1px 6px; border-radius: 4px; background: #dce9ff; color: #3d4a42; margin-left: 8px; }
 .meal-r { display: flex; gap: 20px; text-align: right; }
 .num-main { font-size: 12px; font-weight: 600; color: #0b1c30; }
 .num-price { font-size: 14px; font-weight: 700; color: #006948; }
-.total-box { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px; background: #e5eeff; border-radius: 12px; margin: 12px 0 16px 0; }
+.total-box {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  padding: 16px; background: #e5eeff; border-radius: 12px; margin: 12px 0 16px 0;
+}
 .total-label { font-size: 12px; font-weight: 600; color: #3d4a42; letter-spacing: .02em; }
 .total-line { font-size: 14px; font-weight: 600; color: #0b1c30; margin-top: 2px; }
 .total-price { font-size: 18px; font-weight: 700; color: #006948; text-align: right; }
@@ -258,7 +274,10 @@ div[data-baseweb="popover"] li:hover {
 .bar { height: 8px; background: #dce9ff; border-radius: 999px; overflow: hidden; margin-top: 4px; }
 .bar > div { height: 100%; border-radius: 999px; }
 .banner { display: flex; align-items: center; gap: 12px; padding: 16px; background: #e5eeff; border-radius: 12px; }
-.banner-ico { width: 32px; height: 32px; border-radius: 50%; background: #d3e4fe; color: #006948; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.banner-ico {
+  width: 32px; height: 32px; border-radius: 50%; background: #d3e4fe; color: #006948; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
 .banner b { display: block; font-size: 14px; color: #0b1c30; }
 .banner span { font-size: 11px; color: #3d4a42; }
 .empty { padding: 32px 16px; text-align: center; background: #eff4ff; border-radius: 12px; font-size: 13px; color: #3d4a42; }
@@ -269,33 +288,37 @@ div[data-baseweb="popover"] li:hover {
 .day-h span { font-size: 12px; font-weight: 700; color: #006948; }
 .day-i { font-size: 12px; color: #3d4a42; padding: 3px 0; display: flex; justify-content: space-between; gap: 8px; }
 
-/* Responsif */
-@media (max-width: 1200px) {
+/* ---------- Responsif ---------- */
+@media (max-width: 1100px) {
+  .brand-sub { display: none; }
+}
+@media (max-width: 992px) {
+  .block-container { padding: 5rem 1rem 2rem 1rem !important; }
+  [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: 1rem !important; }
+  [data-testid="stColumn"], [data-testid="column"] { flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .bars { grid-template-columns: 1fr; }
+  [class*="st-key-card-"] { padding: 16px; }
 }
-@media (max-width: 768px) {
-  .block-container { padding: 5rem 1rem 2rem 1rem !important; }
-  .app-header { padding: 0 16px 0 64px; height: 56px; }
-  .brand-sub, .unit { display: none; }
-  .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
-  .kpi { padding: 14px; }
-  .kpi-val { font-size: 26px; line-height: 32px; }
+@media (max-width: 640px) {
+  .app-header { padding: 0 12px 0 68px; }
+  .unit, .pill-engine { display: none; }
+  .brand-name { font-size: 16px; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi-val { font-size: 26px; line-height: 34px; }
   .h1 { font-size: 20px; line-height: 28px; }
-  .lead { font-size: 13px; line-height: 20px; }
-  .meal { padding: 10px; }
-  .meal-r { width: 100%; justify-content: space-between; }
-  .meal-l { flex: 1 1 100%; }
-  .total-box { padding: 12px; }
-  .total-price { font-size: 16px; }
-  .banner { flex-direction: column; align-items: flex-start; }
-  .day-grid { grid-template-columns: 1fr; }
+  .meal { flex-direction: column; align-items: flex-start; }
+  .meal-r { width: 100%; justify-content: space-between; text-align: left; }
+  .total-box { flex-direction: column; align-items: flex-start; }
+  .total-price { text-align: left; }
 }
 </style>
 """
 
 
 def md(s):
+    """Render HTML ke Streamlit. Baris dirapatkan agar Markdown tidak
+    menganggap baris berindentasi / baris kosong sebagai code block."""
     st.markdown("".join(line.strip() for line in s.strip().splitlines()), unsafe_allow_html=True)
 
 
@@ -351,6 +374,8 @@ if "dataset" not in st.session_state:
     st.session_state.dataset = deepcopy(DEFAULT_DATASET)
 for _k in ("hasil", "mingguan"):
     st.session_state.setdefault(_k, None)
+# Menyalin ulang nilai parameter tiap run agar tidak hilang saat pindah halaman
+# (Streamlit membuang state widget yang tidak dirender di halaman aktif).
 for _k, _v in DEFAULT_PARAMS.items():
     st.session_state[_k] = st.session_state.get(_k, _v)
 
@@ -365,7 +390,7 @@ def get_params():
 
 
 # ============================================================
-# ALGORITMA ACO
+# ALGORITMA ACO (logika tidak diubah)
 # ============================================================
 def weighted_choice(items, weights):
     total = sum(weights)
@@ -452,7 +477,7 @@ def run_aco(dataset, params):
 
 
 # ============================================================
-# CALLBACK
+# CALLBACK TOMBOL
 # ============================================================
 def jalankan_aco():
     ds = st.session_state.dataset
@@ -503,7 +528,7 @@ def render_header():
         <div class="logo">🐜</div>
         <div>
           <div><span class="brand-name">MBG NutriOpt</span>
-            <span class="pill" style="background:#85f8c4;color:#002114"><span class="dot"></span>ACO Engine (Active)</span></div>
+            <span class="pill pill-engine" style="background:#85f8c4;color:#002114"><span class="dot"></span>ACO Engine (Active)</span></div>
           <div class="brand-sub">Sistem Optimasi Menu &amp; Porsi Bergizi Gratis berbasis Ant Colony Optimization</div>
         </div>
       </div>
@@ -680,6 +705,7 @@ def page_simulasi():
     ok = bool(hasil and hasil.get("menu_terbaik"))
     ds = st.session_state.dataset
 
+    # ---- Bar kontrol atas ----
     with st.container(key="card-hero"):
         c_txt, c_btn = st.columns([3, 1.2], vertical_alignment="center")
         with c_txt:
@@ -715,8 +741,10 @@ def page_simulasi():
     if empty_cats:
         st.warning(f"Kategori berikut kosong dan akan dilewati: {', '.join(empty_cats)}")
 
+    # ---- KPI ----
     render_kpis(hasil)
 
+    # ---- Dua kolom: parameter | hasil ----
     col_l, col_r = st.columns([5, 7], gap="medium")
 
     with col_l:
@@ -742,7 +770,7 @@ def page_simulasi():
                      "Perkembangan biaya menu terbaik dan rata-rata koloni tiap iterasi")
             if ok:
                 fig = grafik_konvergensi(hasil)
-                st.pyplot(fig, use_container_width=True)
+                st.pyplot(fig)
                 plt.close(fig)
             elif hasil:
                 empty_state("Belum ada grafik karena tidak ada solusi yang valid.")
@@ -765,6 +793,7 @@ def page_simulasi():
             else:
                 empty_state("Menu hasil optimasi akan tampil di sini.")
 
+    # ---- Tabel detail ----
     if ok:
         with st.container(key="card-table"):
             sec_head("table_chart", "Detail Tabel Menu")
@@ -774,7 +803,7 @@ def page_simulasi():
                  "Protein (g)": round(m["protein"], 1)}
                 for m in hasil["menu_terbaik"]
             ])
-            st.dataframe(df, hide_index=True, use_container_width=True)
+            st.dataframe(df, hide_index=True)
 
     md(f"""
     <div class="banner"><div class="banner-ico">{icon("verified_user", 18)}</div>
@@ -807,6 +836,7 @@ def page_katalog():
                "Tambah, ubah, atau hapus bahan makanan. Semua nilai gizi dan harga dihitung per 100 gram. "
                "Perubahan tersimpan selama sesi ini berjalan.")
 
+    # Ringkasan
     if ds:
         cells = "".join(
             f'<div class="kpi"><div class="kpi-top"><span>{escape(k)}</span></div>'
@@ -814,6 +844,7 @@ def page_katalog():
         )
         md(f'<div class="kpi-grid">{cells}</div>')
 
+    # Form tambah
     with st.container(key="card-tambah"):
         sec_head("add_circle", "Tambah Bahan Baru")
         with st.form("form_tambah", clear_on_submit=True):
@@ -842,6 +873,7 @@ def page_katalog():
                     })
                     st.rerun()
 
+    # Edit & hapus
     with st.container(key="card-edit"):
         sec_head("edit_note", "Edit &amp; Hapus Bahan",
                  "Ubah nilai langsung di tabel. Centang kolom 🗑️ lalu klik Hapus untuk membuang baris.")
@@ -858,7 +890,6 @@ def page_katalog():
                 df.insert(0, "hapus", False)
                 edited = st.data_editor(
                     df, key=f"editor_{kat}", hide_index=True, num_rows="fixed",
-                    use_container_width=True,
                     column_config={
                         "hapus": st.column_config.CheckboxColumn("🗑️", width="small"),
                         "icon": st.column_config.TextColumn("Icon", width="small", max_chars=4),
@@ -879,6 +910,7 @@ def page_katalog():
                     del ds[kat]
                     st.rerun()
 
+    # Backup / restore
     with st.container(key="card-backup"):
         sec_head("database", "Backup &amp; Restore Dataset")
         col_exp, col_imp = st.columns(2)
@@ -953,7 +985,7 @@ def page_mingguan():
             st.download_button("⬇ Unduh Rencana Mingguan (.CSV)", data=df.to_csv(index=False).encode("utf-8"),
                                file_name="rencana_mingguan_mbg.csv", mime="text/csv", key="dl_week")
             with st.expander("Lihat tabel lengkap"):
-                st.dataframe(df, hide_index=True, use_container_width=True)
+                st.dataframe(df, hide_index=True)
 
 
 # ============================================================
